@@ -1,0 +1,82 @@
+#include <ros/ros.h>
+#include <geometry_msgs/Twist.h>
+#include <turtlesim/Pose.h>
+#include <cmath>
+#include <iostream>
+#include <algorithm>
+using namespace std;
+ros::Publisher pub;
+const float PI = 3.14159265;
+float rate = 30;
+turtlesim::Pose current_pose;
+//function get message 
+geometry_msgs::Twist getMessage(double linear_x, double angular_z)
+{
+    geometry_msgs::Twist msg;
+    msg.linear.x = linear_x;
+    msg.angular.z = angular_z;
+    return msg;
+}
+//function get information about current pose of turtle
+void poseCallback(const turtlesim::Pose::ConstPtr& msg)
+{
+    current_pose = *msg;
+}
+
+int main(int argc, char** argv)
+{
+    ros::init(argc, argv, "myturtle_control" );
+    ros::NodeHandle d;
+    pub = d.advertise<geometry_msgs::Twist>("turtle1/cmd_vel",1000);
+    ros::Subscriber sub = 
+        d.subscribe("turtle1/pose", 1000, poseCallback);
+    ros:: Rate loopRate(rate); // set delay with number of message per second
+
+    for(int i = 1; i <= argc-1; i+=2)
+    {
+        double x0 = atof(argv[i]);
+        double y0 = atof(argv[i+1]);
+        const double tolerance = 1e-2;//error
+
+        while (ros::ok())
+        {
+            cout << "x= " << current_pose.x << " y= " <<current_pose.y << " theta= " << current_pose.theta << endl;
+
+            double distance = sqrt(pow(x0-current_pose.x, 2) + pow(y0-current_pose.y, 2));
+            if(distance< tolerance)
+            {
+                pub.publish(getMessage(0,0));
+                break;
+            }
+            double x = x0 - 5.54444;
+            double y = y0 - 5.54444;
+            double factor;
+            if( x>0 && y>0 )
+            {
+                factor = 1;
+            }
+            if( x>0 && y<0 )
+            {
+                factor = 1;
+            }
+            if( x<0 && y<0 )
+            {
+                factor = -1;
+            }
+            if( x<0 && y>0)
+            {
+                factor = -1;
+            }
+            
+            double dx = x0 - current_pose.x, dy = y0 - current_pose.y, theta = current_pose.theta;
+            double dalpha = asin((cos(theta)*dy-sin(theta)*dx) / distance);
+            geometry_msgs::Twist msg = getMessage( factor*min(4*distance, 16.0), factor*16*dalpha);
+            pub.publish(msg);
+            loopRate.sleep();
+            ros::spinOnce();
+
+
+        }
+    }
+    return 0;
+}
