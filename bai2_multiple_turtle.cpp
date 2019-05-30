@@ -93,16 +93,13 @@ int main(int argc, char** argv)
         {
              while (ros::ok()) 
             {
-                
-                
-                
-                geometry_msgs::Twist msg = getMessage(
-                    min(1*distanceLinear(array[idx].current_pose,x0,y0), 4.0),
+            geometry_msgs::Twist msg = getMessage(
+                   min(1*distanceLinear(array[idx].current_pose,x0,y0), 4.0),
                     4*distanceAngular(array[idx].current_pose,x0,y0)
                 );
 
-                array[idx].pub.publish(msg);
-		       loopRate.sleep();
+            array[idx].pub.publish(msg);
+		    loopRate.sleep();
             ros::spinOnce();
             }
             
