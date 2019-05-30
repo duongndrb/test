@@ -88,12 +88,12 @@ int main(int argc, char** argv)
     for (int i = 2; i <= argc-1; i+=2) 
     {
         double x0 = atof(argv[i]), y0 = atof(argv[i+1]);
-
+            
         for (int idx = 0; idx < n_turtle; idx++)
         {
-            
-                 while (ros::ok()) 
+             while (ros::ok()) 
             {
+                
                 
                 
                 geometry_msgs::Twist msg = getMessage(
@@ -102,11 +102,12 @@ int main(int argc, char** argv)
                 );
 
                 array[idx].pub.publish(msg);
-		        
+		       loopRate.sleep();
+            ros::spinOnce();
             }
+            
         }
-        loopRate.sleep();
-        ros::spinOnce();
+         
     }
     return 0;
 }
