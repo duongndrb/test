@@ -1,3 +1,4 @@
+
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 #include <turtlesim/Pose.h>
@@ -8,7 +9,7 @@
 #include <ctime>
 using namespace std;
 const float tolerance = 1e-2;
-float rate = 5;
+float rate = 100;
 
 geometry_msgs::Twist getMessage(double linear_x, double angular_z)
 {
@@ -54,6 +55,30 @@ double distanceAngular(turtlesim::Pose pose, double goal_X, double goal_Y)
     }
     return angular;
 }
+double Factor(turtlesim::Pose pose, double goal_X, double goal_Y)
+{
+	double factor;
+	double x = goal_X - 5.54444;
+            double y = goal_Y - 5.54444;
+            
+            if( x>0 && y>0 )
+            {
+                factor = 1;
+            }
+            if( x>0 && y<0 )
+            {
+                factor = 1;
+            }
+            if( x<0 && y<0 )
+            {
+                factor = -1;
+            }
+            if( x<0 && y>0)
+            {
+                factor = -1;
+            }
+	return factor;
+}
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "myturtle_control");
@@ -83,32 +108,44 @@ int main(int argc, char** argv)
         array[i].sub = d.subscribe(name+"/pose", 1000, &PoseCallback::callback, &array[i]);
         cout << "subcribe turtle " << i << " to " << name << "/pose" << endl;
     }
-    ros::Rate loopRate(rate);
 
-    for (int i = 2; i <= argc-1; i+=2) 
+    double goal[n_turtle][2];
+    for(int idx = 0; idx < n_turtle; idx++)
     {
-        double x0 = atof(argv[i]), y0 = atof(argv[i+1]);
-          while (ros::ok()) 
-            {   
-        for (int idx = 0; idx < n_turtle; idx++)
-        {
-            if(distanceLinear(array[idx].current_pose, x0, y0) < tolerance)
-            {
-		array[idx].pub.publish(getMessage(0, 0));
-		break;
-		}
-            geometry_msgs::Twist msg = getMessage(
-                   min(1*distanceLinear(array[idx].current_pose,x0,y0), 4.0),
-                    4*distanceAngular(array[idx].current_pose,x0,y0)
-                );
+        goal[idx][0] = array[idx].current_pose.x;
+        goal[idx][1] = array[idx].current_pose.y;
+    }
+    int factor = 2;
 
-            array[idx].pub.publish(msg);
-		    
+    ros::Rate loopRate(rate);
+    while(ros::ok())
+    {
+        for(int idx = 0; idx < n_turtle ; idx++)
+        {
+            if(distanceLinear(array[idx].current_pose, goal[idx][0], goal[idx][1]) < tolerance)
+            {
+                array[idx].pub.publish(getMessage(0, 0));
+                if(factor < argc - 1)
+                {
+                    goal[idx][0] = atof(argv[factor]);
+                    goal[idx][1] = atof(argv[factor + 1]);
+                    factor = factor + 2;
+                    cout << "turtle" << idx + 1 << ": " << goal[idx][0] << " " << goal[idx][1] << endl;
+                }
+                
             }
-            loopRate.sleep();
-            ros::spinOnce();
+
+            geometry_msgs::Twist msg = getMessage(Factor(array[idx].current_pose, goal[idx][0], goal[idx][1])*
+                min(4*distanceLinear(array[idx].current_pose, goal[idx][0], goal[idx][1]),  16.0),
+                Factor(array[idx].current_pose, goal[idx][0], goal[idx][1])*16*distanceAngular(array[idx].current_pose, goal[idx][0], goal[idx][1])
+            );
+            array[idx].pub.publish(msg);
         }
-         
+        
+        loopRate.sleep();
+        ros::spinOnce();
     }
     return 0;
 }
+
+
