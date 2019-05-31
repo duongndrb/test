@@ -88,21 +88,25 @@ int main(int argc, char** argv)
     for (int i = 2; i <= argc-1; i+=2) 
     {
         double x0 = atof(argv[i]), y0 = atof(argv[i+1]);
-            
+          while (ros::ok()) 
+            {   
         for (int idx = 0; idx < n_turtle; idx++)
         {
-             while (ros::ok()) 
+            if(distanceLinear(array[idx].current_pose, x0, y0) < tolerance)
             {
+		array[idx].pub.publish(getMessage(0, 0));
+		break;
+		}
             geometry_msgs::Twist msg = getMessage(
                    min(1*distanceLinear(array[idx].current_pose,x0,y0), 4.0),
                     4*distanceAngular(array[idx].current_pose,x0,y0)
                 );
 
             array[idx].pub.publish(msg);
-		    loopRate.sleep();
-            ros::spinOnce();
+		    
             }
-            
+            loopRate.sleep();
+            ros::spinOnce();
         }
          
     }
